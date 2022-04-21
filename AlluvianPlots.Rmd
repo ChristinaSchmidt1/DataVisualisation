@@ -1,0 +1,92 @@
+---
+title: "AlluvianPlot"
+author: "Christina Schmidt"
+date: "20 June 2021"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: console
+---
+
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse) # used for data manipulation
+library(rmarkdown) # used for paged_table function
+
+library(wakefield)#to generate vector of random names
+
+library(alluvial)
+```
+
+# Alluvian Plot
+For better representation it is useful to understand the dimensions between the data. I found that it is useful to plot the data as ["parallel sets diagram"](https://www.jasondavies.com/parallel-sets/) or ["alluvial plots"](https://cran.r-project.org/web/packages/alluvial/vignettes/alluvial.html) , which is a visualisation technique for multideminsional categorical data.\
+There are many ways that this plot could be used for. For example in the methods section to explain how data have been excluded, but also to visualise relationships between different comparisons.
+
+```{r, warning=FALSE, message=FALSE}
+
+#------------------------------
+# Make an example DF:
+## For example condition one is KO versus WT from cell cultured in Hypoxia
+Gene <- name(50)
+Log2FC <- runif(50, min=-5, max=5)
+p.adj <- runif(50, min=0, max=0.2)
+DF_Input_C1 <- data.frame(Gene, Log2FC, p.adj, stringsAsFactors=FALSE)
+DF_Input_C1$Condition <- "Hypoxia"
+
+## And condition two is KO versus WT from cell cultured in Normoxia
+Log2FC <- runif(50, min=-2, max=9)
+p.adj <- runif(50, min=0, max=0.1)
+DF_Input_C2 <- data.frame(Gene, Log2FC, p.adj, stringsAsFactors=FALSE)
+DF_Input_C2$Condition <- "Normoxia"
+
+## Combine the DF and add parameters for e.g. thresholds you apply to extract genes:
+DF_Iput <-rbind(DF_Input_C1,DF_Input_C2)%>%
+  mutate(`Change` = case_when(Log2FC > 0.5  ~ 'UP',
+                                 Log2FC < -0.5 ~ 'DOWN',
+                                  TRUE ~ 'No Change')) %>%
+  mutate(`Significant` = case_when(p.adj <= 0.05  ~ 'YES',
+                                  p.adj > 0.05 ~ 'NO',
+                                  TRUE ~ 'FALSE')) %>%
+  mutate(`Significant Change` = case_when(Log2FC > 0.5 & p.adj <= 0.05  ~ 'UP',
+                                  Log2FC < -0.5 & p.adj <= 0.05 ~ 'DOWN',
+                                  TRUE ~ 'No Change'))
+DF_Iput$Frequency <-1
+#---------------------------
+#Plot
+pdf("Output_Figures/AlluvianPlot_Method_Overview.pdf")# Open a pdf file , paper="a4r" --> landscape A4
+par(oma=c(2,2,8,2), mar = c(2, 2, 0.1, 2)+0.1)#https://www.r-graph-gallery.com/74-margin-and-oma-cheatsheet.html
+
+alluvial(DF_Iput[,c(4:7,1)], freq=DF_Iput$Frequency,
+         col = case_when(DF_Iput$Condition == "Hypoxia"  ~ 'blue',
+                         DF_Iput$Condition == "Normoxia" ~ 'red',
+                         TRUE ~ 'grey'),
+         border = case_when(DF_Iput$Condition == "Hypoxia"  ~ 'blue',
+                         DF_Iput$Condition == "Normoxia" ~ 'red',
+                         TRUE ~ 'grey'),
+         hide = DF_Iput$Frequency == 0,
+         cex = 0.3,
+         cex.axis = 0.5)
+
+mtext("Alluvian Plot:Overview", side=3, line=6, cex=1.2, col="black", outer=TRUE)#https://www.r-graph-gallery.com/74-margin-and-oma-cheatsheet.html
+mtext("Method", side=3, line=5, cex=0.8, col="black", outer=TRUE)
+mtext("50 Genes per Sample", side=2, line=0, cex=0.8, col="black", outer=TRUE)
+mtext("Hypoxia", side=3, line=4, adj=0, cex=0.6, col="blue", outer=TRUE)  
+mtext("Normoxia", side=3, line=3, adj=0, cex=0.6, col="red", outer=TRUE)  
+#mtext("XXX", side=3, line=2, adj=0, cex=0.6, col="mediumaquamarine", outer=TRUE)  
+#mtext("XXX", side=3, line=1, adj=0, cex=0.6, col="mediumorchid", outer=TRUE)  
+#mtext("XXX", side=3, line=0, adj=0, cex=0.6, col="grey", outer=TRUE)  
+dev.off()# Close the pdf file
+
+```
+
+
+
+
+
+
+

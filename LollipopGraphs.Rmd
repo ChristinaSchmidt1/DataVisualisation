@@ -1,0 +1,112 @@
+---
+title: "LollipopGraph"
+author: "Christina Schmidt"
+date: "26 April 2022"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: console
+---
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse) # used for data manipulation
+library(rmarkdown) # used for paged_table function
+
+library(wakefield)#to generate vector of random names
+
+```
+
+# Lollipop Graph of Metabolic Pathways
+Input data includes column "Log2FC" and "gene".\
+The metabolic signatures used are based on [Gaude et al](https://www.nature.com/articles/ncomms13041#Sec16) and are used to plot specific metabolic pathways of interest. Of course, here any signatures used to perform enrichment analysis can be used (e.g. KEGG, BIOCARTA, REACTOME, GO-terms,...).\
+This graph is great if you want to compare e.g. the change between two Log2FC from two comparison. One example would be tumour versus normal in late stage or in early stage patients.
+```{r, warning=FALSE, message=FALSE}
+#Function:
+
+Lollipop__MetabolicPathway <- function(Input, Signature, Signature_term){
+      Pathway <- subset(Signature, term == paste(Signature_term))
+      Plot  <- merge(x=Pathway,y=Input, by.x="gene", by.y="Gene", all.x=TRUE)%>%
+      na.omit()
+  #Plot
+   if(dim(Plot)>=1){    
+  Dotplot1 <-ggplot(Plot, aes(x=reorder(gene, + Log2FC), y= Log2FC, label=Log2FC_Round)) + 
+    geom_point(stat='identity', aes(size = Log2FC, col=Stage))  +
+    geom_segment(aes(y =(Reduce(max,Plot$Log2FC)), 
+                   x = gene, 
+                   yend = Log2FC,
+                   xend = gene), 
+               color = "black") +
+   scale_size(name="Log2FC",range = c(2,16))+
+    geom_text(color="black", size=2) +
+    labs(title=paste(Signature_term), 
+        subtitle="Comparison") + 
+    ylim(((Reduce(min,Plot$Log2FC))-0.5),((Reduce(max,Plot$Log2FC))+0.5)) +
+    theme_minimal() +
+    coord_flip()+
+    theme(plot.title = element_text(color = "black", size = 12, face = "bold"),
+          plot.subtitle = element_text(color = "black", size=10),
+          plot.caption = element_text(color = "black",size=9, face = "italic", hjust = 2.5))+
+    labs(y="Log2FC", x="")
+  ggsave(file=paste("Output_Figures/Output_DivergingLollipopGraphs/LollipopGraph_",Signature_term,".pdf", sep=""), plot=Dotplot1, width=10, height=10)
+   }
+}
+
+
+#Make an example DF:
+DF_C1 <- read.csv("Input_GeneNames/GeneNames.csv")
+DF_C1$Log2FC<- runif(17021, min=-5, max=1)
+DF_C1$Stage <- "Stage 1"
+DF_C2 <- read.csv("Input_GeneNames/GeneNames.csv")
+DF_C2$Log2FC <- runif(17021, min=-1, max=7)
+DF_C2$Stage <- "Stage 2"
+
+#Remove Doublons in gene list:
+RemoveDublons <-function(MyData){
+  MyData <- MyData[complete.cases(MyData),] 
+  doublons <- as.character(MyData[duplicated(MyData$Gene),"Gene"])
+  print("Number of duplicated genes:")
+  print(length(doublons))
+  # Keep the entry with the greatest Log2FC:
+  MyData$absLog2FC <- abs(MyData$Log2FC)
+  MyData <- MyData[ order(MyData$absLog2FC), ]
+  MyData_Select <- MyData[!duplicated(MyData$Gene),]
+  #Safe:
+  OutputFileName <-  MyData_Select
+}
+
+#Remove duplicated genes: Function 
+DF_C1_ND <- RemoveDublons(MyData= DF_C1)
+DF_C2_ND <- RemoveDublons(MyData= DF_C2)
+
+#Combine:
+DF <- rbind(DF_C1_ND, DF_C2_ND)
+DF$Log2FC_Round <- round(DF$Log2FC, digits = 4)
+
+#Load the Metabolic Pathways from gaude et al:
+Metabolic_Signature <-read.csv("Input_MetabolicPathways_Gaude/41467_2016_BFncomms13041_MOESM340_ESM.csv")
+
+Correction_Metabolic_Signature <- read.csv("Input_MetabolicPathways_Gaude/41467_2016_BFncomms13041_MOESM341_ESM.csv")%>% 
+    mutate(Unique = case_when(associated_Pathways =="1" ~ 'Unique',
+                                  TRUE ~ 'In multiple Pathways'))
+Metabolic_Signature <-merge(x=Metabolic_Signature, y=Correction_Metabolic_Signature, by.x ="gene", by.y="external_gene_name", all.x=TRUE)
+
+#Make the plots:
+Pathway_Names <- Metabolic_Signature[!duplicated(Metabolic_Signature$term),]
+Pathway_Names <- Pathway_Names$term
+
+for (i in Pathway_Names){
+  Lollipop__MetabolicPathway (Input=DF,
+            Signature= Metabolic_Signature,
+            Signature_term=i)
+}
+```
+
+# Information about packge used and versions 
+```{r}
+sessionInfo()
+```

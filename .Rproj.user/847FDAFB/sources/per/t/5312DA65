@@ -1,0 +1,28 @@
+{
+    "id": "5312DA65",
+    "path": "~/DataVisualisation/AlluvianPlots.Rmd",
+    "project_path": "AlluvianPlots.Rmd",
+    "type": "r_markdown",
+    "hash": "285387562",
+    "contents": "",
+    "dirty": false,
+    "created": 1650548748136.0,
+    "source_on_save": false,
+    "relative_order": 1,
+    "properties": {
+        "tempName": "Untitled1",
+        "source_window_id": "",
+        "Source": "Source",
+        "cursorPosition": "60,20",
+        "scrollLine": "52",
+        "chunk_output_type": "console"
+    },
+    "folds": "",
+    "lastKnownWriteTime": 1650532981,
+    "encoding": "UTF-8",
+    "collab_server": "",
+    "source_window": "",
+    "last_content_update": 1650548753354,
+    "read_only": false,
+    "read_only_alternatives": []
+}

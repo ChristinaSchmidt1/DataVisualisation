@@ -1,0 +1,63 @@
+---
+title: "Violin plots"
+author: "Christina Schmidt"
+date: "5/5/2021"
+output:
+  html_document:
+    toc: yes
+    toc_depth: 3
+    toc_float: yes
+  pdf_document:
+    toc: yes
+    toc_depth: '3'
+editor_options:
+  chunk_output_type: console
+---
+```{r, warning=FALSE, message=FALSE}
+library(tidyverse) # used for data manipulation
+library(rmarkdown) # used for paged_table function
+
+library(wakefield)#to generate vector of random names
+
+library(ggbeeswarm)#For plot
+library(ggpubr)#For plot
+```
+
+# Violin Plots
+This example showcases to make an individual plot for each gene/metabolite.
+```{r, message=FALSE, warning=FALSE}
+# Make an example DF:
+Gene <- name(300)
+WT_1 <- runif(300, min=-5, max=5)
+WT_2  <- runif(300, min=-5, max=5)
+WT_3  <- runif(300, min=-5, max=5)
+KO_1 <- runif(300, min=-1, max=9)
+KO_2 <- runif(300, min=-1, max=9)
+KO_3 <- runif(300, min=-1, max=9)
+
+DF_Input <- data.frame(Gene, WT_1, WT_2, WT_3, KO_1,KO_2,KO_3,stringsAsFactors=FALSE)
+rownames(DF_Input)<-DF_Input$Gene
+DF_Input <-as.data.frame(t(DF_Input[,-1]))
+
+DF_Input$Status <-c("WT", "WT", "WT", "KO", "KO", "KO")
+
+# If the Gene names or metabolite names include characters that are not allowed as a file name they need to be removed (see examples below):
+colnames(DF_Input) <- (gsub("/"," ",colnames(DF_Input)))#remove "/" cause this can not be safed in a PDF name
+colnames(DF_Input) <- (gsub(":"," ",colnames(DF_Input)))#remove ":" cause this can not be safed in a PDF name
+
+# Make a list of genes/metabolites we want to plot:
+Names <- rownames(t(DF_Input[,1:300]))
+
+#Make the plots: Example for metabolites
+for (i in Names){ 
+ViolinePlot1 <- ggplot(DF_Input, aes(x=Status, y=assign(i, get(i)) ,color=factor(Status))) +
+  geom_violin(trim=FALSE, color="black", fill="gray88")+
+  stat_compare_means(data=DF_Input,comparisons = list(c("WT", "KO")), method="wilcox.test", paired=FALSE) +
+  geom_beeswarm(cex=4)+
+  theme_classic()+
+  labs(y = paste("Peak Area of", i, "(abitrary unit)"), x = "")
+ViolinePlot1$labels$colour <- "Genomic status"
+ggsave(file=paste("Output_Figures/ViolinPlots/ViolinePlot_KOvWT_", i, ".pdf", sep=""), plot=ViolinePlot1, width=8, height=6)
+  plot(ViolinePlot1)
+}
+```
